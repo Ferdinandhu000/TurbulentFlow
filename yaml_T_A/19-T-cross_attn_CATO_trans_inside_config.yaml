@@ -8,7 +8,7 @@ dataset:
   sensor_generator: 'LHS'  # AroundCylinder | LHS
   embedding_generator: 'Voronoi'  # Voronoi | SoftVoronoi | Mask | Vector
   dropout_probabilities: [0.05, 0.04, 0.03, 0.02, 0.01]   # [] for no dropout
-  seed: 20
+  seed: 1
   write_to_disk: true # Set to false if tensors/ are already generated
 
 architecture:

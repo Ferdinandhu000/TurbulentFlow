@@ -46,7 +46,7 @@ def plot_frame(
         chart_titles.append(f"Full State") 
     if reconstruction_frame is not None and fullstate_frame is not None:
         error_frame = reconstruction_frame - fullstate_frame
-        frames_to_plot.append(error_frame)  
+        frames_to_plot.append(error_frame)
         chart_titles.append(f"Error") 
     frame_shapes = [frame.shape for frame in frames_to_plot]
     assert all(shape == frame_shapes[0] for shape in frame_shapes), "All provided frames must have the same shape." 

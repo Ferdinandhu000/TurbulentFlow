@@ -46,7 +46,7 @@ def plot_frame(
         chart_titles.append(f"Full State") 
     if reconstruction_frame is not None and fullstate_frame is not None:
         error_frame = reconstruction_frame - fullstate_frame
-        frames_to_plot.append(error_frame)  
+        frames_to_plot.append(error_frame)
         chart_titles.append(f"Error") 
     frame_shapes = [frame.shape for frame in frames_to_plot]
     assert all(shape == frame_shapes[0] for shape in frame_shapes), "All provided frames must have the same shape." 
@@ -69,19 +69,20 @@ def plot_frame(
     if num_plots == 1:
         axs = [axs]  # Ensure axs is iterable if only one subplot
     
-    max_value: float = 5
+    max_value: float = 10.
     for frame, ax, chart_title in zip(frames_to_plot, axs, chart_titles):
-        # norm = matplotlib.colors.Normalize()
-        # vmin_val = frame.min().item()  ###  
-        # vmax_val = frame.max().item()  ###
-        if chart_title == 'Error':
-            norm = matplotlib.colors.Normalize(vmin=-max_value, vmax=max_value)
-        else:
-            norm = matplotlib.colors.Normalize(vmin=0, vmax=max_value) 
+        norm = matplotlib.colors.Normalize()
+        vmin_val = frame.min().item()  ###
+        vmax_val = frame.max().item()  ###
+        # if chart_title == 'Error':
+        #     norm = matplotlib.colors.Normalize(vmin=-max_value, vmax=max_value)
+        # else:
+        #     norm = matplotlib.colors.Normalize(vmin=0, vmax=max_value) 
         im = ax.imshow(frame.squeeze(dim=0),
                        origin="lower",
-                       norm=norm,
                        cmap='RdBu_r',
+                       vmin=vmin_val,
+                       vmax=vmax_val,
                        extent=extent,
                        aspect='auto',
                        interpolation='bicubic')
@@ -110,7 +111,7 @@ def plot_frame(
         # remove ticks
         ax.set_xticks([])
         ax.set_yticks([])   
-    fig.suptitle(title, fontsize=12)
+    fig.suptitle(title, fontsize=15)
     # Ensure colorbar and labels are visible
     # fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.tight_layout()
