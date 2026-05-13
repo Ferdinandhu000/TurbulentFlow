@@ -12,3 +12,4 @@ report/
 *.pt
 __pycache__/
 *.pyc
+*.csv

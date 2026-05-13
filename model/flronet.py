@@ -929,7 +929,16 @@ class FNO(nn.Module):
                 if idx == 0:
                     output[b, t_idx] = reconstructed_frames[b, 0]
                 elif idx == len(times):
-                    output[b, t_idx] = reconstructed_frames[b, -1]
+                    x_prev = times[-2]
+                    x_next = times[-1]
+                    frame_prev = reconstructed_frames[b, -2]
+                    frame_next = reconstructed_frames[b, -1]
+                    denom = x_next - x_prev
+                    if denom == 0:
+                        output[b, t_idx] = frame_next
+                    else:
+                        slope = (frame_next - frame_prev) / denom
+                        output[b, t_idx] = frame_next + (target_t - x_next) * slope
                 else:
                     t_prev = times[idx-1]
                     t_next = times[idx]
@@ -1023,7 +1032,16 @@ class AFNO(nn.Module):
                 if idx == 0:
                     output[b, t_idx] = reconstructed_frames[b, 0]
                 elif idx == len(times):
-                    output[b, t_idx] = reconstructed_frames[b, -1]
+                    x_prev = times[-2]
+                    x_next = times[-1]
+                    frame_prev = reconstructed_frames[b, -2]
+                    frame_next = reconstructed_frames[b, -1]
+                    denom = x_next - x_prev
+                    if denom == 0:
+                        output[b, t_idx] = frame_next
+                    else:
+                        slope = (frame_next - frame_prev) / denom
+                        output[b, t_idx] = frame_next + (target_t - x_next) * slope
                 else:
                     t_prev, t_next = times[idx-1], times[idx]
                     w_next = (target_t - t_prev) / (t_next - t_prev)
@@ -1110,7 +1128,16 @@ class Transolver(nn.Module):
                 if idx == 0:
                     final_output[b, t_idx] = reconstructed_frames[b, 0]
                 elif idx == len(times):
-                    final_output[b, t_idx] = reconstructed_frames[b, -1]
+                    x_prev = times[-2]
+                    x_next = times[-1]
+                    frame_prev = reconstructed_frames[b, -2]
+                    frame_next = reconstructed_frames[b, -1]
+                    denom = x_next - x_prev
+                    if denom == 0:
+                        final_output[b, t_idx] = frame_next
+                    else:
+                        slope = (frame_next - frame_prev) / denom
+                        final_output[b, t_idx] = frame_next + (target_t - x_next) * slope
                 else:
                     t_prev, t_next = times[idx-1], times[idx]
                     w_next = (target_t - t_prev) / (t_next - t_prev)

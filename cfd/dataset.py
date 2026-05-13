@@ -16,6 +16,9 @@ from cfd.embedding import Voronoi, SoftVoronoi, Mask, Vector
 
 class DatasetMixin:
 
+    def _get_device(self) -> torch.device:
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     def load2tensor(self, case_dir: str) -> torch.Tensor:
         # Check for single .npy file in the case directory
         npy_files = [f for f in os.listdir(case_dir) if f.endswith('.npy')]
@@ -23,7 +26,8 @@ class DatasetMixin:
             raise FileNotFoundError(f"No .npy files found in {case_dir}")
         
         data_path = os.path.join(case_dir, npy_files[0])
-        data = torch.from_numpy(np.load(data_path)).cuda().float()
+        device = self._get_device()
+        data = torch.from_numpy(np.load(data_path)).to(device).float()
         
         # (B, H, W, C) -> (B, C, H, W)
         if data.ndim == 4:
@@ -35,8 +39,9 @@ class DatasetMixin:
 
     def prepare_sensor_timeframes(self, n_chunks: int) -> torch.IntTensor:
         # prepare sensor timeframes (fixed)
+        device = self._get_device()
         sensor_timeframes: torch.Tensor = (
-            torch.tensor(self.init_sensor_timeframes, device='cuda') + torch.arange(n_chunks, device='cuda').unsqueeze(1)
+            torch.tensor(self.init_sensor_timeframes, device=device) + torch.arange(n_chunks, device=device).unsqueeze(1)
         )
         assert sensor_timeframes.shape == (n_chunks, len(self.init_sensor_timeframes))
         return sensor_timeframes.int()
@@ -48,17 +53,22 @@ class DatasetMixin:
         init_fullstate_timeframes: List[int] | None = None,
     ) -> torch.IntTensor:
         assert seed is not None or init_fullstate_timeframes is not None, 'must be either deterministic or random'
+        device = self._get_device()
         if seed is None and init_fullstate_timeframes is not None:    # deterministic
             fullstate_timeframes: torch.Tensor = (
-                torch.arange(n_chunks, device='cuda').unsqueeze(1) 
-                + torch.tensor(init_fullstate_timeframes, device='cuda').unsqueeze(0)
+                torch.arange(n_chunks, device=device).unsqueeze(1) 
+                + torch.tensor(init_fullstate_timeframes, device=device).unsqueeze(0)
             )
             assert fullstate_timeframes.shape == (n_chunks, self.n_fullstate_timeframes_per_chunk)
             return fullstate_timeframes
         
         else:
             assert seed is not None, 'seed must be specified when target frames are generated randomly'
-            fullstate_timeframes: torch.Tensor = torch.empty((n_chunks, self.n_fullstate_timeframes_per_chunk), dtype=torch.int, device='cuda')
+            fullstate_timeframes: torch.Tensor = torch.empty(
+                (n_chunks, self.n_fullstate_timeframes_per_chunk),
+                dtype=torch.int,
+                device=device,
+            )
             for chunk_idx in range(n_chunks):
                 torch.random.manual_seed(seed + chunk_idx)
 
@@ -70,13 +80,13 @@ class DatasetMixin:
                     range_size = range_end - range_start + 1
                     
                     random_init_timeframes = offset + range_start + torch.randperm(
-                        n=range_size, device='cuda'
+                        n=range_size, device=device
                     )[:self.n_fullstate_timeframes_per_chunk].sort()[0]
 
                 else:
                     # Original logic: sample within the sensor range
                     random_init_timeframes: torch.Tensor = torch.randperm(
-                        n=max(self.init_sensor_timeframes), device='cuda'
+                        n=max(self.init_sensor_timeframes), device=device
                     )[:self.n_fullstate_timeframes_per_chunk].sort()[0]
 
                 fullstate_timeframes[chunk_idx] = random_init_timeframes + chunk_idx
@@ -275,7 +285,8 @@ class CFDDataset(Dataset, DatasetMixin):
         fullstate_timeframes_list: List[List[int]] = []
         running_index: int = 0
 
-        data = torch.from_numpy(np.load(self.data_file)).cuda().float()
+        device = self._get_device()
+        data = torch.from_numpy(np.load(self.data_file)).to(device).float()
         # (B, H, W, C) -> (B, C, H, W)
         if data.ndim == 4:
             data = data.permute(0, 3, 2, 1)
@@ -356,7 +367,8 @@ class CFDDataset(Dataset, DatasetMixin):
                 running_index += 1
             
             # manual garbage collection to optimize GPU RAM, otherwise likely lead to OutOfMemoryError
-            torch.cuda.empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         
         assert len(self.case_names) == len(self.sampling_ids) == len(sensor_timeframes_list) == len(fullstate_timeframes_list)
         records: List[Dict[str, Any]] = [

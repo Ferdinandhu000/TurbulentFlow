@@ -312,7 +312,14 @@ class CheckpointLoader:
             - checkpoint_path (str): The path to the checkpoint file.
         """
         self.checkpoint_path: str = checkpoint_path
-        self.__checkpoint: Dict[str, Any] = torch.load(checkpoint_path, weights_only=False)
+        if torch.cuda.is_available():
+            self.__checkpoint: Dict[str, Any] = torch.load(checkpoint_path, weights_only=False)
+        else:
+            self.__checkpoint = torch.load(
+                checkpoint_path,
+                weights_only=False,
+                map_location=torch.device('cpu'),
+            )
 
         # Model metadata
         self.model_classname: str = self.__checkpoint['model']['classname']
